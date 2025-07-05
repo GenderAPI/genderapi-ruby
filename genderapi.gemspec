@@ -2,7 +2,7 @@
 
 Gem::Specification.new do |spec|
   spec.name          = "genderapi"
-  spec.version       = "1.0.1"
+  spec.version       = "1.0.2"
   spec.authors       = ["Onur Ozturk"]
   spec.email         = ["support@genderapi.io"]
 
@@ -25,7 +25,8 @@ Gem::Specification.new do |spec|
   spec.homepage      = "https://www.genderapi.io"
   spec.metadata = {
       "source_code_uri" => "https://github.com/GenderAPI/genderapi-ruby",
-      "changelog_uri"   => "https://github.com/GenderAPI/genderapi-ruby/blob/main/CHANGELOG.md"
+      "changelog_uri"   => "https://github.com/GenderAPI/genderapi-ruby/blob/main/CHANGELOG.md",
+      "documentation_uri" => "https://rubydoc.info/gems/genderapi"
     }
   spec.license       = "MIT"
 
