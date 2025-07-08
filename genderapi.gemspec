@@ -26,7 +26,7 @@ Gem::Specification.new do |spec|
   spec.metadata = {
       "source_code_uri" => "https://github.com/GenderAPI/genderapi-ruby",
       "changelog_uri"   => "https://github.com/GenderAPI/genderapi-ruby/blob/main/CHANGELOG.md",
-      "documentation_uri" => "https://rubydoc.info/gems/genderapi"
+      "documentation_uri" => "https://rubydoc.info/gems/genderapi/1.0.4"
     }
   spec.license       = "MIT"
 
