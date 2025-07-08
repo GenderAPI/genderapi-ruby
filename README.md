@@ -44,7 +44,7 @@ result = api.get_gender_by_name(name: "Michael")
 puts result
 
 # With askToAI set to true
-result = api.get_gender_by_name(name: "李雷", askToAI: true)
+result = api.get_gender_by_name(name: "李雷", ask_to_ai: true)
 puts result
 ```
 
@@ -57,7 +57,7 @@ result = api.get_gender_by_email(email: "michael.smith@example.com")
 puts result
 
 # With askToAI set to true
-result = api.get_gender_by_email(email: "michael.smith@example.com", askToAI: true)
+result = api.get_gender_by_email(email: "michael.smith@example.com", ask_to_ai: true)
 puts result
 ```
 
@@ -70,7 +70,49 @@ result = api.get_gender_by_username(username: "michael_dev")
 puts result
 
 # With askToAI set to true
-result = api.get_gender_by_username(username: "michael_dev", askToAI: true)
+result = api.get_gender_by_username(username: "michael_dev", ask_to_ai: true)
+puts result
+```
+
+---
+
+### 🔹 Get Gender by Name (Bulk)
+
+```ruby
+bulk_data = [
+  { name: "Andrea", country: "DE", id: "123" },
+  { name: "andrea", country: "IT", id: "456" }
+]
+
+result = api.get_gender_by_name_bulk(data: bulk_data)
+puts result
+```
+
+---
+
+### 🔹 Get Gender by Email (Bulk)
+
+```ruby
+bulk_data = [
+  { email: "john@example.com", country: "US", id: "abc123" },
+  { email: "maria@domain.de", country: "DE", id: "def456" }
+]
+
+result = api.get_gender_by_email_bulk(data: bulk_data)
+puts result
+```
+
+---
+
+### 🔹 Get Gender by Username (Bulk)
+
+```ruby
+bulk_data = [
+  { username: "johnwhite", country: "US", id: "u001" },
+  { username: "maria2025", country: "DE", id: "u002" }
+]
+
+result = api.get_gender_by_username_bulk(data: bulk_data)
 puts result
 ```
 
@@ -111,6 +153,45 @@ All API methods accept parameters as keyword arguments. All fields are optional 
 | country            | String   | No       | Two-letter country code (e.g. "US"). Helps narrow down gender detection results by region. |
 | askToAI            | Boolean  | No       | Default is `false`. If `true`, sends the query directly to AI for maximum accuracy, consuming 3 credits per request. If `false`, GenderAPI first tries its internal database and uses AI only if necessary, without spending 3 credits. Recommended for non-latin characters or unusual strings. |
 | forceToGenderize   | Boolean  | No       | Default is `false`. When `true`, analyzes even nicknames, emojis, or unconventional strings like "spider man" instead of returning `null` for non-standard names. |
+
+---
+
+### Name Lookup (Bulk)
+
+| Parameter          | Type     | Required | Description |
+|--------------------|----------|----------|-------------|
+| data               | Array<Hash> | Yes | Array of objects containing name, optional country, and optional id. Limit is 100 records per request. |
+
+Each object in the data array may include:
+- `name`: The name to analyze (required).
+- `country`: Two-letter country code (optional).
+- `id`: Custom identifier to correlate input/output (optional).
+
+---
+
+### Email Lookup (Bulk)
+
+| Parameter          | Type     | Required | Description |
+|--------------------|----------|----------|-------------|
+| data               | Array<Hash> | Yes | Array of objects containing email, optional country, and optional id. Limit is 50 records per request. |
+
+Each object in the data array may include:
+- `email`: The email address to analyze (required).
+- `country`: Two-letter country code (optional).
+- `id`: Custom identifier to correlate input/output (optional).
+
+---
+
+### Username Lookup (Bulk)
+
+| Parameter          | Type     | Required | Description |
+|--------------------|----------|----------|-------------|
+| data               | Array<Hash> | Yes | Array of objects containing username, optional country, and optional id. Limit is 50 records per request. |
+
+Each object in the data array may include:
+- `username`: The username to analyze (required).
+- `country`: Two-letter country code (optional).
+- `id`: Custom identifier to correlate input/output (optional).
 
 ---
 

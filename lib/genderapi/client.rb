@@ -97,6 +97,71 @@ module GenderAPI
       _post_request("/api/username", payload)
     end
 
+    ##
+    # Bulk determine gender from multiple personal names.
+    #
+    # Allows sending up to 100 name records in a single request.
+    # Useful for high-volume batch processing where performance
+    # and cost efficiency are critical.
+    #
+    # Each name object can contain:
+    #   - name [String] The personal name to analyze. (Required)
+    #   - country [String, nil] Optional two-letter country code (e.g. "US").
+    #   - id [String, Integer, nil] Optional custom identifier to correlate input and output.
+    #
+    # @param data [Array<Hash>] Array of name data hashes.
+    #
+    # @return [Hash] JSON response as a Ruby Hash.
+    #
+    def get_gender_by_name_bulk(data:)
+      payload = { data: data }
+      _post_request("/api/name/multi/country", payload)
+    end
+
+    ##
+    # Bulk determine gender from multiple email addresses.
+    #
+    # Allows sending up to 50 email records in a single request.
+    # This method is designed for scenarios such as bulk database
+    # cleaning, analytics, or personalization tasks where email
+    # data is available and high throughput is required.
+    #
+    # Each email object can contain:
+    #   - email [String] The email address to analyze. (Required)
+    #   - country [String, nil] Optional two-letter country code (e.g. "US").
+    #   - id [String, Integer, nil] Optional custom identifier to correlate input and output.
+    #
+    # @param data [Array<Hash>] Array of email data hashes.
+    #
+    # @return [Hash] JSON response as a Ruby Hash.
+    #
+    def get_gender_by_email_bulk(data:)
+      payload = { data: data }
+      _post_request("/api/email/multi/country", payload)
+    end
+
+    ##
+    # Bulk determine gender from multiple social media usernames.
+    #
+    # Allows sending up to 50 username records in a single request.
+    # Useful for bulk social media analytics, profiling, or
+    # marketing segmentation tasks where usernames are the primary
+    # identifier and high performance is required.
+    #
+    # Each username object can contain:
+    #   - username [String] The social media username to analyze. (Required)
+    #   - country [String, nil] Optional two-letter country code (e.g. "US").
+    #   - id [String, Integer, nil] Optional custom identifier to correlate input and output.
+    #
+    # @param data [Array<Hash>] Array of username data hashes.
+    #
+    # @return [Hash] JSON response as a Ruby Hash.
+    #
+    def get_gender_by_username_bulk(data:)
+      payload = { data: data }
+      _post_request("/api/username/multi/country", payload)
+    end
+
     private
 
     ##
@@ -127,7 +192,6 @@ module GenderAPI
       if [500, 502, 503, 504, 408].include?(response.code)
         raise "GenderAPI Server Error or Timeout: HTTP #{response.code} - #{response.body}"
       else
-        # Try parsing JSON response
         begin
           parse_json(response.body)
         rescue JSON::ParserError
