@@ -123,19 +123,19 @@ module GenderAPI
         body: JSON.generate(cleaned_payload)
       )
 
-      case response.code
-      when 200
-        parse_json(response.body)
-      when 404
-        # GenderAPI may return useful JSON for 404 too
-        parse_json(response.body)
+      # Handle server-side errors or timeouts
+      if [500, 502, 503, 504, 408].include?(response.code)
+        raise "GenderAPI Server Error or Timeout: HTTP #{response.code} - #{response.body}"
       else
-        raise "GenderAPI Error: HTTP #{response.code} - #{response.body}"
+        # Try parsing JSON response
+        begin
+          parse_json(response.body)
+        rescue JSON::ParserError
+          raise "GenderAPI Response is not valid JSON"
+        end
       end
     rescue HTTParty::Error => e
       raise "GenderAPI Request failed: #{e.message}"
-    rescue JSON::ParserError
-      raise "GenderAPI Response is not valid JSON"
     end
 
     ##
