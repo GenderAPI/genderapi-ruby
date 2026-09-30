@@ -6,9 +6,9 @@ Gem::Specification.new do |spec|
   spec.authors       = ["Onur Ozturk"]
   spec.email         = ["support@genderapi.io"]
 
-  spec.summary       = %q{Ruby SDK for GenderAPI.io — determine gender from names, emails, and usernames using AI.}
+  spec.summary       = %q{Legacy V1 Ruby client for GenderAPI.io}
   spec.description   = %q{
-    Official Ruby SDK for GenderAPI.io.
+    Legacy V1 Ruby client for GenderAPI.io.
 
     This SDK allows determining gender from:
     - personal names
@@ -26,7 +26,7 @@ Gem::Specification.new do |spec|
   spec.metadata = {
       "source_code_uri" => "https://github.com/GenderAPI/genderapi-ruby",
       "changelog_uri"   => "https://github.com/GenderAPI/genderapi-ruby/blob/main/CHANGELOG.md",
-      "documentation_uri" => "https://rubydoc.info/gems/genderapi/1.0.4"
+      "documentation_uri" => "https://www.genderapi.io/api-documentation/v1"
     }
   spec.license       = "MIT"
 

@@ -1,5 +1,7 @@
 # genderapi-ruby
 
+> This Ruby package is a legacy V1 client for GenderAPI.io. Its methods, request fields and response examples use the V1 contract. Use the [V1 API documentation](https://www.genderapi.io/api-documentation/v1) for this package. For a new integration, see the [V2 documentation](https://www.genderapi.io/api-documentation). V2 uses a different request and response format; changing the base URL alone does not migrate this client. Results are inferences and may be unresolved. They do not verify a person's identity.
+
 Official Ruby SDK for [GenderAPI.io](https://www.genderapi.io) — determine gender from **names**, **emails**, and **usernames** using AI.
 
 ---
@@ -130,8 +132,8 @@ All API methods accept parameters as keyword arguments. All fields are optional 
 |--------------------|----------|----------|-------------|
 | name               | String   | Yes      | Name to query. |
 | country            | String   | No       | Two-letter country code (e.g. "US"). Helps narrow down gender detection results by region. |
-| askToAI            | Boolean  | No       | Default is `false`. If `true`, sends the query directly to AI for maximum accuracy, consuming 3 credits per request. If `false`, GenderAPI first tries its internal database and uses AI only if necessary, without spending 3 credits. Recommended for non-latin characters or unusual strings. |
-| forceToGenderize   | Boolean  | No       | Default is `false`. When `true`, analyzes even nicknames, emojis, or unconventional strings like "spider man" instead of returning `null` for non-standard names. |
+| askToAI            | Boolean  | No       | Defaults to `false`. Enables the legacy AI option. Supported single lookups with this option use a 2-credit tariff. This does not guarantee higher accuracy or a resolved result. Ordinary lookups and batch requests follow their V1 billing rules; inspect the returned `used_credits` value. |
+| forceToGenderize   | Boolean  | No       | Default is `false`. When `true`, allows interpretation of nickname-like or unconventional inputs where supported by this V1 method. A result may still be unresolved; the option does not verify identity. |
 
 ---
 
@@ -141,7 +143,7 @@ All API methods accept parameters as keyword arguments. All fields are optional 
 |-----------|--------|----------|-------------|
 | email     | String | Yes      | Email address to query. |
 | country   | String | No       | Two-letter country code (e.g. "US"). Helps narrow down gender detection results by region. |
-| askToAI   | Boolean | No      | Default is `false`. If `true`, sends the query directly to AI for maximum accuracy, consuming 3 credits per request. If `false`, GenderAPI first tries its internal database and uses AI only if necessary, without spending 3 credits. Recommended for non-latin characters or unusual strings. |
+| askToAI   | Boolean | No      | Defaults to `false`. Enables the legacy AI option. Supported single lookups with this option use a 2-credit tariff. This does not guarantee higher accuracy or a resolved result. Ordinary lookups and batch requests follow their V1 billing rules; inspect the returned `used_credits` value. |
 
 ---
 
@@ -151,8 +153,8 @@ All API methods accept parameters as keyword arguments. All fields are optional 
 |--------------------|----------|----------|-------------|
 | username           | String   | Yes      | Username to query. |
 | country            | String   | No       | Two-letter country code (e.g. "US"). Helps narrow down gender detection results by region. |
-| askToAI            | Boolean  | No       | Default is `false`. If `true`, sends the query directly to AI for maximum accuracy, consuming 3 credits per request. If `false`, GenderAPI first tries its internal database and uses AI only if necessary, without spending 3 credits. Recommended for non-latin characters or unusual strings. |
-| forceToGenderize   | Boolean  | No       | Default is `false`. When `true`, analyzes even nicknames, emojis, or unconventional strings like "spider man" instead of returning `null` for non-standard names. |
+| askToAI            | Boolean  | No       | Defaults to `false`. Enables the legacy AI option. Supported single lookups with this option use a 2-credit tariff. This does not guarantee higher accuracy or a resolved result. Ordinary lookups and batch requests follow their V1 billing rules; inspect the returned `used_credits` value. |
+| forceToGenderize   | Boolean  | No       | Default is `false`. When `true`, allows interpretation of nickname-like or unconventional inputs where supported by this V1 method. A result may still be unresolved; the option does not verify identity. |
 
 ---
 
@@ -278,7 +280,11 @@ You can try live gender detection directly on GenderAPI.io:
 
 ## 📚 Detailed API Documentation
 
-For the complete API reference, visit:
+For the complete V1 API reference used by this package, visit:
+
+[https://www.genderapi.io/api-documentation/v1](https://www.genderapi.io/api-documentation/v1)
+
+For a new integration, use the V2 documentation instead (different request and response format; this client is not a V2 client):
 
 [https://www.genderapi.io/api-documentation](https://www.genderapi.io/api-documentation)
 
