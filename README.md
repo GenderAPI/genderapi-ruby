@@ -4,7 +4,7 @@ Official GenderAPI.io V2 client for Ruby.
 
 It sends names, email addresses and usernames to the [GenderAPI.io V2 API](https://www.genderapi.io/api-documentation) and returns the complete V2 response: the prediction in `data` and access and billing information in `meta`. Results are inferences, not identity verification, and they can be unknown.
 
-> **Version 2.0.0 is a breaking release.** It targets the V2 API (`https://api.genderapi.io/api/v2`). The 1.x client (V1 API) is in maintenance on the [`v1` branch](https://github.com/GenderAPI/genderapi-ruby/tree/v1) and the existing 1.x releases stay on RubyGems. See [Migrating from 1.x](#migrating-from-1x).
+> **Version 2.0.0 is a breaking release.** It targets the V2 API (`https://api.genderapi.io/api/v2`). 1.x (V1 API) stays available and installable indefinitely; no deprecation or shutdown is planned. To keep using it, pin 1.x with `gem install genderapi -v "~> 1.0"` (Gemfile: `gem "genderapi", "~> 1.0"`). The source stays on the [`v1` branch](https://github.com/GenderAPI/genderapi-ruby/tree/v1). See [Migrating from 1.x](#migrating-from-1x).
 
 - Ruby >= 3.0
 - No runtime dependencies (standard library `net/http` and `json`)
@@ -113,7 +113,7 @@ client.error_catalog  # GET /api/v2/errors
 | `base_url` | `https://api.genderapi.io/api/v2` | HTTPS is required. Plain `http://` is accepted only for `localhost`, `127.0.0.1` and `[::1]`, for tests. |
 | `timeout` | `10` | Seconds allowed for each connect, write and read operation. |
 | `user_agent` | `nil` | Text appended to the default `genderapi-ruby/2.0.0 (Ruby x.y.z)` User-Agent. |
-| `require_api_key_access` | `true` | When a key is configured and the response reports IP-trial or unauthenticated access (the key was not accepted), raise `GenderAPI::UnexpectedAccessModeError`. The request has already run. The complete result is in `error.result`. |
+| `require_api_key_access` | `true` | When a key is configured and the response reports IP-trial or unauthenticated access (the key was not accepted), raise `GenderAPI::UnexpectedAccessModeError`. The request has already been processed, so IP-trial credits may have been used. The complete result is in `error.result`, the mode in `error.access_mode`. Set `false` to return the result instead. Never applies without a key, or to `capabilities`/`error_catalog`. |
 
 ### Prediction (`gender`, `name`, `email`, `username`, batch items)
 
@@ -165,7 +165,7 @@ All errors inherit from `GenderAPI::Error`. Messages never include your key or i
 | `RedirectError` | The server answered with a 3xx. Redirects are never followed, so your key is never forwarded to another location. |
 | `TransportError` / `TimeoutError` | No usable response was received. The request may still have completed and been billed. |
 | `InvalidResponseError` | A 2xx response that is not the expected JSON structure |
-| `UnexpectedAccessModeError` | A key was configured, but the response reports IP-trial or unauthenticated access (see `require_api_key_access`) |
+| `UnexpectedAccessModeError` | A key was configured, but the response reports IP-trial or unauthenticated access (see `require_api_key_access`). The request has already been processed and trial credits may have been used; the complete result is in `error.result`. Do not resend automatically. |
 
 `APIError` exposes `status`, `code` (a stable machine code; match on this, never on `detail`), `title`, `detail`, `type`, `instance`, `action`, `documentation`, `errors` (validation pointers such as `[{"pointer" => "/value", "message" => "..."}]`), `request_id` (from `meta.request_id`, the body, or the `X-Request-ID` header), `retry_after` (from the `Retry-After` header: Integer seconds, or the raw String for an HTTP date), `usage`, `billing_status`, `billing_unconfirmed?`, `items` / `data` (item outcomes when every batch item failed), `body` (parsed) and `raw_body`. Proxy errors can be non-JSON. In that case `code` is nil and `raw_body` holds the response text. The error body can contain your inputs, so inspect it securely and do not log it wholesale.
 
@@ -200,11 +200,25 @@ The machine-readable catalog of codes and actions is at [`/api/v2/errors`](https
 
 The client also works without an API key. The server then applies a shared IP trial: 10 credits per 24 hours per public IP address, normal tariffs, and batches of at most 10 items. Clients behind the same public IP share this quota. `meta.access.mode` is `ip_trial`, and `meta.usage.resets_at` shows when the window resets. The client has no trial logic of its own; the server decides.
 
-If you configure a key and the server does not accept it, the request can fall back to the IP trial. By default the client then raises `UnexpectedAccessModeError`. Check your key.
+If you configure a key and the server does not accept it, the request can fall back to the IP trial. By default the client then raises `UnexpectedAccessModeError`. The request has already been processed and may have used IP-trial credits. Check your key.
 
 ## Migrating from 1.x
 
-1.x (V1 API) is in maintenance on the [`v1` branch](https://github.com/GenderAPI/genderapi-ruby/tree/v1). V2 is a different request and response contract, so changing only the URL is not enough. Your API key and credit balance stay the same.
+You do not have to migrate. 1.x (V1 API) stays available and installable indefinitely, with no deprecation or shutdown planned. To stay on it:
+
+```bash
+gem install genderapi -v "~> 1.0"
+```
+
+or in your Gemfile:
+
+```ruby
+gem "genderapi", "~> 1.0"
+```
+
+The 1.x source stays on the [`v1` branch](https://github.com/GenderAPI/genderapi-ruby/tree/v1).
+
+V2 is a different request and response contract, so changing only the URL is not enough. Your API key and credit balance stay the same.
 
 | 1.x (V1) | 2.x (V2) |
 | --- | --- |

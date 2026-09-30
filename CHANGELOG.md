@@ -4,7 +4,7 @@
 
 ### Breaking
 
-- The client now targets the GenderAPI.io V2 API (`https://api.genderapi.io/api/v2`). The 1.x client (V1 API) is in maintenance on the `v1` branch, and the 1.x releases remain available.
+- The client now targets the GenderAPI.io V2 API (`https://api.genderapi.io/api/v2`). 1.x (V1 API) stays available and installable indefinitely (`gem install genderapi -v "~> 1.0"`); no deprecation or shutdown is planned. The source stays on the `v1` branch.
 - New interface: `GenderAPI::Client#gender(type, value, country:, ai_mode:, force_to_genderize:, id:)` with `#name`, `#email` and `#username`, plus `#gender_batch(items)`, `#usage`, `#validate_phone(number, country:)`, `#capabilities` and `#error_catalog`. The V1 methods (`get_gender_by_*` and `get_gender_by_*_bulk`) have been removed.
 - Responses are V2 `data`/`meta` objects wrapped in typed readers (`GenderResult`, `BatchResult`, `UsageResult`, `PhoneResult`) that keep every field. `probability` is replaced by `confidence` (0-1) and `confidence_kind`; `used_credits` is replaced by `meta.usage.charged_credits`.
 - HTTP errors raise `GenderAPI::APIError` subclasses exposing `status`, `code`, `action`, `detail`, `errors`, `request_id`, `retry_after` and `billing_status`, instead of a generic `RuntimeError`.
