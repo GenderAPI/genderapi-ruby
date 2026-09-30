@@ -256,7 +256,7 @@ Test fixtures in `test/fixtures/openapi_examples.json` are the response examples
 
 ### Releasing
 
-Pushing a `v*` tag (for example `v2.0.0`) runs `.github/workflows/publish.yml`. The workflow tests the gem, checks that the tag matches `GenderAPI::VERSION`, builds it and pushes it to RubyGems. It uses the repository secret **`RUBYGEMS_API_KEY`**, a RubyGems API key scoped to "Push rubygem" for `genderapi`.
+Pushing a `v*` tag (for example `v2.0.0`) runs `.github/workflows/publish.yml`. The workflow tests the gem, checks that the tag matches `GenderAPI::VERSION`, builds it and pushes it to RubyGems. It authenticates through RubyGems trusted publishing (OIDC) configured for this repository and workflow, so no API key is stored.
 
 ## License
 

@@ -1,8 +1,8 @@
 name: Publish to RubyGems
 
 # Runs when a version tag such as v2.0.0 is pushed.
-# Requires the repository secret RUBYGEMS_API_KEY (RubyGems API key with the
-# "Push rubygem" scope for the genderapi gem).
+# Authenticates through the RubyGems trusted publisher for GenderAPI/genderapi-ruby
+# (publish.yml) using OIDC; no API key is stored.
 on:
   push:
     tags:
@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   publish:
@@ -31,7 +32,7 @@ jobs:
           fi
       - name: Build gem
         run: gem build genderapi.gemspec
+      - name: Configure RubyGems credentials (trusted publishing)
+        uses: rubygems/configure-rubygems-credentials@v1.0.0
       - name: Push to RubyGems
-        env:
-          GEM_HOST_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
         run: gem push "genderapi-${GITHUB_REF_NAME#v}.gem"
