@@ -1,295 +1,249 @@
-# genderapi-ruby
+# genderapi (Ruby)
 
-> This Ruby package is a legacy V1 client for GenderAPI.io. Its methods, request fields and response examples use the V1 contract. Use the [V1 API documentation](https://www.genderapi.io/api-documentation/v1) for this package. For a new integration, see the [V2 documentation](https://www.genderapi.io/api-documentation). V2 uses a different request and response format; changing the base URL alone does not migrate this client. Results are inferences and may be unresolved. They do not verify a person's identity.
+Official GenderAPI.io V2 client for Ruby.
 
-Official Ruby SDK for [GenderAPI.io](https://www.genderapi.io) — determine gender from **names**, **emails**, and **usernames** using AI.
+It sends names, email addresses and usernames to the [GenderAPI.io V2 API](https://www.genderapi.io/api-documentation) and returns the complete V2 response: the prediction in `data` and access and billing information in `meta`. Results are inferences, not identity verification, and they can be unknown.
 
----
+> **Version 2.0.0 is a breaking release.** It targets the V2 API (`https://api.genderapi.io/api/v2`). The 1.x client (V1 API) is in maintenance on the [`v1` branch](https://github.com/GenderAPI/genderapi-ruby/tree/v1) and the existing 1.x releases stay on RubyGems. See [Migrating from 1.x](#migrating-from-1x).
 
-Get your Free API Key: [https://app.genderapi.io](https://app.genderapi.io)
+- Ruby >= 3.0
+- No runtime dependencies (standard library `net/http` and `json`)
+- **Server-side only.** Keep your API key in the server environment. Never embed it in browser, mobile or other client-side code.
 
----
-
-## 🚀 Installation
-
-Add this line to your Gemfile:
+## Installation
 
 ```ruby
-gem 'genderapi'
+# Gemfile
+gem "genderapi", "~> 2.0"
 ```
-
-Then execute:
 
 ```bash
 bundle install
-```
-
-Or install it manually:
-
-```bash
+# or
 gem install genderapi
 ```
 
----
-
-## 📝 Usage
-
-### 🔹 Get Gender by Name
+## Quick start
 
 ```ruby
-require 'genderapi'
+require "genderapi"
 
-api = GenderAPI::Client.new(api_key: "YOUR_API_KEY")
+# Reads ENV["GENDERAPI_API_KEY"] when api_key is not given.
+client = GenderAPI::Client.new(api_key: ENV["GENDERAPI_API_KEY"])
 
-# Basic usage
-result = api.get_gender_by_name(name: "Michael")
-puts result
+result = client.name("Andrea", country: "IT")
+prediction = result.data
 
-# With askToAI set to true
-result = api.get_gender_by_name(name: "李雷", ask_to_ai: true)
-puts result
+prediction.gender           # => "female", "male" or nil
+prediction.result_status    # => "identified" or "unknown"
+prediction.confidence       # => 0..1 or nil (not a calibrated probability)
+prediction.confidence_kind  # => "observed_frequency", "model_reported" or nil
+result.usage.charged_credits
+result.usage.remaining_credits
+result.request_id
 ```
 
----
+Requiring the gem or constructing a client never makes a network request. Every method call makes exactly one HTTP request.
 
-### 🔹 Get Gender by Email
+### Email and username
 
 ```ruby
-result = api.get_gender_by_email(email: "michael.smith@example.com")
-puts result
+client.email("alex.smith@example.com")
+client.username("prenses", country: "TR", force_to_genderize: true)
 
-# With askToAI set to true
-result = api.get_gender_by_email(email: "michael.smith@example.com", ask_to_ai: true)
-puts result
+# Generic form: type is "name", "email" or "username"
+client.gender("username", "michael_dev", ai_mode: "off", id: "row-17")
 ```
 
----
-
-### 🔹 Get Gender by Username
+### Batch (1-50 items)
 
 ```ruby
-result = api.get_gender_by_username(username: "michael_dev")
-puts result
+result = client.gender_batch([
+  { type: "name", value: "Andrea", country: "IT", id: "a-1" },
+  { type: "email", value: "alex@example.com", id: "a-2" },
+  { type: "username", value: "prenses", id: "a-3", ai_mode: "fallback", force_to_genderize: true }
+])
 
-# With askToAI set to true
-result = api.get_gender_by_username(username: "michael_dev", ask_to_ai: true)
-puts result
+result.items.each do |item|
+  if item.success?
+    puts "#{item.id}: #{item.data.gender.inspect} (#{item.data.result_status})"
+  else
+    puts "#{item.id}: #{item.error.code} (#{item.error.action})"
+  end
+end
+
+result.summary.to_h   # => {"total"=>3, "succeeded"=>2, "identified"=>1, "unknown"=>1, "failed"=>1}
+result.failed_items   # failed rows; partial success is returned, not raised
 ```
 
----
+The server may allow fewer items than 50 (IP-trial batches allow at most 10). Split larger jobs yourself. Item ids are optional, but when you give them they must be unique and at most 64 characters.
 
-### 🔹 Get Gender by Name (Bulk)
+### Usage (free)
 
 ```ruby
-bulk_data = [
-  { name: "Andrea", country: "DE", id: "123" },
-  { name: "andrea", country: "IT", id: "456" }
-]
-
-result = api.get_gender_by_name_bulk(data: bulk_data)
-puts result
+usage = client.usage
+usage.data.remaining_credits
+usage.data.expires_at
+usage.meta.access.mode   # "api_key", "ip_trial" or "unauthenticated"
 ```
 
----
-
-### 🔹 Get Gender by Email (Bulk)
+### Phone validation
 
 ```ruby
-bulk_data = [
-  { email: "john@example.com", country: "US", id: "abc123" },
-  { email: "maria@domain.de", country: "DE", id: "def456" }
-]
-
-result = api.get_gender_by_email_bulk(data: bulk_data)
-puts result
+client.validate_phone("+1 415 555 0100")
+client.validate_phone("415 555 0100", country: "US") # country is required without a leading +
 ```
 
----
+This checks the number's structure, not whether a subscriber exists. It costs 1 credit, including for invalid numbers.
 
-### 🔹 Get Gender by Username (Bulk)
+### Discovery (no key sent)
 
 ```ruby
-bulk_data = [
-  { username: "johnwhite", country: "US", id: "u001" },
-  { username: "maria2025", country: "DE", id: "u002" }
-]
-
-result = api.get_gender_by_username_bulk(data: bulk_data)
-puts result
+client.capabilities   # GET /api/v2
+client.error_catalog  # GET /api/v2/errors
 ```
 
----
+## Options
 
-## 📥 API Parameters
+### Client
 
-All API methods accept parameters as keyword arguments. All fields are optional except the primary identifier (name, email, or username).
+| Option | Default | Description |
+| --- | --- | --- |
+| `api_key` | `ENV["GENDERAPI_API_KEY"]` | Your API key. It is sent only as `Authorization: Bearer <key>`, never in a URL, and it is never logged or shown by `inspect`. |
+| `base_url` | `https://api.genderapi.io/api/v2` | HTTPS is required. Plain `http://` is accepted only for `localhost`, `127.0.0.1` and `[::1]`, for tests. |
+| `timeout` | `10` | Seconds allowed for each connect, write and read operation. |
+| `user_agent` | `nil` | Text appended to the default `genderapi-ruby/2.0.0 (Ruby x.y.z)` User-Agent. |
+| `require_api_key_access` | `true` | When a key is configured and the response reports IP-trial or unauthenticated access (the key was not accepted), raise `GenderAPI::UnexpectedAccessModeError`. The request has already run. The complete result is in `error.result`. |
 
----
+### Prediction (`gender`, `name`, `email`, `username`, batch items)
 
-### Name Lookup
+| Ruby argument | Wire field | Description |
+| --- | --- | --- |
+| `type` | `type` | `"name"`, `"email"` or `"username"` |
+| `value` | `value` | 1-254 characters that are not all whitespace and contain no control characters |
+| `country:` | `country` | Optional uppercase ISO 3166-1 alpha-2 code such as `"US"`. Leave it out when the country is unknown. |
+| `ai_mode:` | `options.ai_mode` | `"off"`, `"fallback"` or `"always"`. If you leave it out, the server uses its default: `fallback` for single requests and `off` for batch items. |
+| `force_to_genderize:` | `forceToGenderize` | `true` checks the dataset first (1 credit). If that result is unknown, it uses nickname-aware AI inference (2 credits total). It cannot be combined with `ai_mode` `off` or `always`. |
+| `id:` | `id` | Optional correlation id, 1-64 characters |
 
-| Parameter          | Type     | Required | Description |
-|--------------------|----------|----------|-------------|
-| name               | String   | Yes      | Name to query. |
-| country            | String   | No       | Two-letter country code (e.g. "US"). Helps narrow down gender detection results by region. |
-| askToAI            | Boolean  | No       | Defaults to `false`. Enables the legacy AI option. Supported single lookups with this option use a 2-credit tariff. This does not guarantee higher accuracy or a resolved result. Ordinary lookups and batch requests follow their V1 billing rules; inspect the returned `used_credits` value. |
-| forceToGenderize   | Boolean  | No       | Default is `false`. When `true`, allows interpretation of nickname-like or unconventional inputs where supported by this V1 method. A result may still be unresolved; the option does not verify identity. |
+Invalid input raises `GenderAPI::ValidationError` (with `#field`) **before** any network request. The API remains authoritative for email syntax and ISO country membership, and it reports problems with those as HTTP 422.
 
----
+Credits (server rules): a dataset result or automatic AI fallback costs 1 credit, including unknown results. `ai_mode: "always"` costs 2. A request needs a positive starting balance, and the full tariff can take the balance below zero (for example, 1 - 2 = -1).
 
-### Email Lookup
+## Response fields
 
-| Parameter | Type   | Required | Description |
-|-----------|--------|----------|-------------|
-| email     | String | Yes      | Email address to query. |
-| country   | String | No       | Two-letter country code (e.g. "US"). Helps narrow down gender detection results by region. |
-| askToAI   | Boolean | No      | Defaults to `false`. Enables the legacy AI option. Supported single lookups with this option use a 2-credit tariff. This does not guarantee higher accuracy or a resolved result. Ordinary lookups and batch requests follow their V1 billing rules; inspect the returned `used_credits` value. |
+Every result wraps the parsed JSON. Typed readers are provided for the documented fields. `[]`, `dig` and `to_h` give access to all fields, including ones added in future API versions. Values are never converted: `confidence` stays on its 0-1 scale and is never turned into a percentage or probability.
 
----
+| Reader | Meaning |
+| --- | --- |
+| `data.gender` | `"male"`, `"female"` or `nil` |
+| `data.result_status` | `"identified"` (gender is set) or `"unknown"` (gender is nil). An unknown result is a successful, billed outcome. |
+| `data.reason` | `nil`, `"not_found"`, `"no_name_candidate"`, `"ambiguous"` or `"insufficient_evidence"` |
+| `data.confidence` / `data.confidence_kind` | Score from 0 to 1 and what it is: `observed_frequency` (dominant dataset count / total) or `model_reported` (AI score, not calibrated). Both are nil when gender is nil. |
+| `data.sample_count` | Dataset sample count; nil for AI |
+| `data.source` | `"dataset"`, `"ai"` or `"none"` |
+| `data.name`, `data.country`, `data.country_source` | The returned name, the country and where the country came from (`dataset`, `ai_association` or nil). These fields never indicate nationality or residence. |
+| `data.match` | `{"name", "method", "scope", "country"}`: the dataset candidate and lookup scope |
+| `data.input` | The input as the server understood it |
+| `meta.request_id`, `meta.duration_ms` | Identifier and duration of this HTTP attempt |
+| `meta.access.mode` / `.reason` | `api_key`, `ip_trial` or `unauthenticated`; the trial reason, if any |
+| `meta.usage.billing_status` | `not_charged`, `confirmed` or `unconfirmed` |
+| `meta.usage.charged_credits` | Net charge. It is nil when billing is unconfirmed. |
+| `meta.usage.remaining_credits` | Balance when the request completed. It can be negative, or nil if unknown. |
+| `meta.usage.resets_at`, `.limit`, `.period_seconds` | IP-trial window (nil otherwise) |
+| Batch `items[i].index`, `.id`, `.charged_credits` | Each row has exactly one of `.data` (Prediction) or `.error` (item problem) |
+| Batch `meta.summary` | `total`, `succeeded`, `identified`, `unknown`, `failed` |
 
-### Username Lookup
+## Errors
 
-| Parameter          | Type     | Required | Description |
-|--------------------|----------|----------|-------------|
-| username           | String   | Yes      | Username to query. |
-| country            | String   | No       | Two-letter country code (e.g. "US"). Helps narrow down gender detection results by region. |
-| askToAI            | Boolean  | No       | Defaults to `false`. Enables the legacy AI option. Supported single lookups with this option use a 2-credit tariff. This does not guarantee higher accuracy or a resolved result. Ordinary lookups and batch requests follow their V1 billing rules; inspect the returned `used_credits` value. |
-| forceToGenderize   | Boolean  | No       | Default is `false`. When `true`, allows interpretation of nickname-like or unconventional inputs where supported by this V1 method. A result may still be unresolved; the option does not verify identity. |
+All errors inherit from `GenderAPI::Error`. Messages never include your key or input values.
 
----
+| Class | When |
+| --- | --- |
+| `ValidationError` | Invalid arguments. No request was sent. |
+| `APIError` | HTTP >= 400. Subclasses: `BadRequestError` (400), `AuthenticationError` (401), `PermissionDeniedError` (403), `NotFoundError` (404), `UnprocessableEntityError` (422), `RateLimitError` (429), `ServerError` (5xx) |
+| `RedirectError` | The server answered with a 3xx. Redirects are never followed, so your key is never forwarded to another location. |
+| `TransportError` / `TimeoutError` | No usable response was received. The request may still have completed and been billed. |
+| `InvalidResponseError` | A 2xx response that is not the expected JSON structure |
+| `UnexpectedAccessModeError` | A key was configured, but the response reports IP-trial or unauthenticated access (see `require_api_key_access`) |
 
-### Name Lookup (Bulk)
+`APIError` exposes `status`, `code` (a stable machine code; match on this, never on `detail`), `title`, `detail`, `type`, `instance`, `action`, `documentation`, `errors` (validation pointers such as `[{"pointer" => "/value", "message" => "..."}]`), `request_id` (from `meta.request_id`, the body, or the `X-Request-ID` header), `retry_after` (from the `Retry-After` header: Integer seconds, or the raw String for an HTTP date), `usage`, `billing_status`, `billing_unconfirmed?`, `items` / `data` (item outcomes when every batch item failed), `body` (parsed) and `raw_body`. Proxy errors can be non-JSON. In that case `code` is nil and `raw_body` holds the response text. The error body can contain your inputs, so inspect it securely and do not log it wholesale.
 
-| Parameter          | Type     | Required | Description |
-|--------------------|----------|----------|-------------|
-| data               | Array<Hash> | Yes | Array of objects containing name, optional country, and optional id. Limit is 100 records per request. |
-
-Each object in the data array may include:
-- `name`: The name to analyze (required).
-- `country`: Two-letter country code (optional).
-- `id`: Custom identifier to correlate input/output (optional).
-
----
-
-### Email Lookup (Bulk)
-
-| Parameter          | Type     | Required | Description |
-|--------------------|----------|----------|-------------|
-| data               | Array<Hash> | Yes | Array of objects containing email, optional country, and optional id. Limit is 50 records per request. |
-
-Each object in the data array may include:
-- `email`: The email address to analyze (required).
-- `country`: Two-letter country code (optional).
-- `id`: Custom identifier to correlate input/output (optional).
-
----
-
-### Username Lookup (Bulk)
-
-| Parameter          | Type     | Required | Description |
-|--------------------|----------|----------|-------------|
-| data               | Array<Hash> | Yes | Array of objects containing username, optional country, and optional id. Limit is 50 records per request. |
-
-Each object in the data array may include:
-- `username`: The username to analyze (required).
-- `country`: Two-letter country code (optional).
-- `id`: Custom identifier to correlate input/output (optional).
-
----
-
-## ✅ API Response
-
-Example JSON response for all endpoints:
-
-```json
-{
-  "status": true,
-  "used_credits": 1,
-  "remaining_credits": 4999,
-  "expires": 1743659200,
-  "q": "michael.smith@example.com",
-  "name": "Michael",
-  "gender": "male",
-  "country": "US",
-  "total_names": 325,
-  "probability": 98,
-  "duration": "4ms"
-}
+```ruby
+begin
+  client.name("Andrea")
+rescue GenderAPI::RateLimitError => e
+  # Wait e.retry_after seconds. A later request is a new, billable operation.
+rescue GenderAPI::APIError => e
+  if e.billing_unconfirmed?
+    # Contact support with e.request_id. Do not retry automatically.
+  end
+  warn "GenderAPI #{e.status} #{e.code} #{e.action} #{e.request_id}"
+rescue GenderAPI::TransportError => e
+  # The outcome is unknown. Check client.usage before sending again.
+end
 ```
 
----
+The machine-readable catalog of codes and actions is at [`/api/v2/errors`](https://api.genderapi.io/api/v2/errors) (`client.error_catalog`).
 
-### Response Fields
+## Billing and no-retry rules
 
-| Field             | Type               | Description                                         |
-|-------------------|--------------------|-----------------------------------------------------|
-| status            | Boolean            | `true` or `false`. Check errors if false.           |
-| used_credits      | Integer            | Credits used for this request.                      |
-| remaining_credits | Integer            | Remaining credits on your package.                  |
-| expires           | Integer (timestamp)| Package expiration date (in seconds).               |
-| q                 | String             | Your input query (name, email, or username).        |
-| name              | String             | Found name.                                         |
-| gender            | Enum[String]       | `"male"`, `"female"`, or `"null"`.                  |
-| country           | Enum[String]       | Most likely country (e.g. `"US"`, `"DE"`, etc.).    |
-| total_names       | Integer            | Number of samples behind the prediction.            |
-| probability       | Integer            | Likelihood percentage (50-100).                     |
-| duration          | String             | Processing time (e.g. `"4ms"`).                     |
+- **No automatic retries, ever.** Every prediction or phone request is a new, billable operation. If a response is lost, the request may still have been billed, so the client never retries, not even on 429.
+- **429:** wait for `retry_after` before sending another request. That request is a new operation with normal charges.
+- **`billing_status: "unconfirmed"`** (for example `billing_reconciliation_required`): contact support with the `request_id` before retrying.
+- **5xx prediction failures:** check `billing_status` and fix the cause before sending another request.
+- **Partial batch success:** retry only the failed items, and only after billing is confirmed. Resubmitting successful items charges them again.
+- **Timeouts or transport errors:** check `client.usage` before sending again.
+- Redirects are never followed. HTTPS is required. The default timeout is 10 seconds.
 
----
+## IP trial (no key)
 
-## ⚠️ Error Codes
+The client also works without an API key. The server then applies a shared IP trial: 10 credits per 24 hours per public IP address, normal tariffs, and batches of at most 10 items. Clients behind the same public IP share this quota. `meta.access.mode` is `ip_trial`, and `meta.usage.resets_at` shows when the window resets. The client has no trial logic of its own; the server decides.
 
-When `status` is `false`, check the following error codes:
+If you configure a key and the server does not accept it, the request can fall back to the IP trial. By default the client then raises `UnexpectedAccessModeError`. Check your key.
 
-| errno | errmsg                      | Description                                                       |
-|-------|-----------------------------|-------------------------------------------------------------------|
-| 50    | access denied               | Unauthorized IP Address or Referrer. Check your access privileges. |
-| 90    | invalid country code        | Check supported country codes. [ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) |
-| 91    | name not set \|\| email not set | Missing `name` or `email` parameter on your request.         |
-| 92    | too many names \|\| too many emails | Limit is 100 for names, 50 for emails in one request.     |
-| 93    | limit reached               | The API key credit has been finished.                            |
-| 94    | invalid or missing key      | The API key cannot be found.                                      |
-| 99    | API key has expired         | Please renew your API key.                                       |
+## Migrating from 1.x
 
-Example error response:
+1.x (V1 API) is in maintenance on the [`v1` branch](https://github.com/GenderAPI/genderapi-ruby/tree/v1). V2 is a different request and response contract, so changing only the URL is not enough. Your API key and credit balance stay the same.
 
-```json
-{
-  "status": false,
-  "errno": 94,
-  "errmsg": "invalid or missing key"
-}
+| 1.x (V1) | 2.x (V2) |
+| --- | --- |
+| `get_gender_by_name(name:)`, `get_gender_by_email(email:)`, `get_gender_by_username(username:)` | `client.name(value)`, `client.email(value)`, `client.username(value)` or `client.gender(type, value)` |
+| V1 routes `/api`, `/api/email`, `/api/username` | `POST /api/v2/gender` with `type` and `value` |
+| `get_gender_by_*_bulk(data:)` on `/api/*/multi/country` | `client.gender_batch(items)` -> `POST /api/v2/gender/batch` with `items` (1-50) |
+| `ask_to_ai:` / `askToAI` | `ai_mode:` -> `options.ai_mode` (`off`, `fallback`, `always`). Single requests already default to `fallback`. |
+| `force_to_genderize:` (name, username) | `force_to_genderize:` -> `forceToGenderize` for name, email and username; dataset first, then nickname-aware AI |
+| Flat response fields (`q`, `name`, `gender`, ...) | `data` for the result and `meta` for access and billing |
+| `probability` (percentage) | `data.confidence` (0-1) plus `data.confidence_kind`. AI scores are not calibrated probabilities. |
+| `total_names` | `data.sample_count` (nullable) |
+| `used_credits` / `remaining_credits` | `meta.usage.charged_credits` / `meta.usage.remaining_credits` |
+| `expires` | `client.usage.data.expires_at` |
+| `status: false` with `errno` / `errmsg` | HTTP status plus a Problem Details `code` and `action`, raised as `GenderAPI::APIError` |
+| Generic `RuntimeError` on 5xx | Typed errors with `billing_status`, `request_id` and `retry_after` |
+| HTTParty dependency | Standard library only |
+| Ruby >= 2.6 | Ruby >= 3.0 |
+
+## Documentation
+
+- API documentation: https://www.genderapi.io/api-documentation
+- V2 guides: [responses](https://www.genderapi.io/docs/v2/responses), [request parameters](https://www.genderapi.io/docs/v2/request-parameters), [AI options](https://www.genderapi.io/docs/v2/ai-options), [batch](https://www.genderapi.io/docs/v2/batch), [credits and usage](https://www.genderapi.io/docs/v2/credits-and-usage), [errors and retries](https://www.genderapi.io/docs/v2/errors-and-retries), [authentication](https://www.genderapi.io/docs/v2/authentication), [phone validation](https://www.genderapi.io/docs/v2/phone-validation), [migration](https://www.genderapi.io/docs/v2/migration)
+- OpenAPI: https://api.genderapi.io/api/v2/openapi.json
+
+## Development
+
+```bash
+bundle config set --local path vendor/bundle
+bundle install
+bundle exec rake test   # local stub server only: no real API, no credits
+gem build genderapi.gemspec
 ```
 
----
+Test fixtures in `test/fixtures/openapi_examples.json` are the response examples from the V2 OpenAPI document.
 
-## 🔗 Live Test Pages
+### Releasing
 
-You can try live gender detection directly on GenderAPI.io:
+Pushing a `v*` tag (for example `v2.0.0`) runs `.github/workflows/publish.yml`. The workflow tests the gem, checks that the tag matches `GenderAPI::VERSION`, builds it and pushes it to RubyGems. It uses the repository secret **`RUBYGEMS_API_KEY`**, a RubyGems API key scoped to "Push rubygem" for `genderapi`.
 
-- **Determine gender from a name:**  
-  [www.genderapi.io](https://www.genderapi.io)
+## License
 
-- **Determine gender from an email address:**  
-  [https://www.genderapi.io/determine-gender-from-email](https://www.genderapi.io/determine-gender-from-email)
-
-- **Determine gender from a username:**  
-  [https://www.genderapi.io/determine-gender-from-username](https://www.genderapi.io/determine-gender-from-username)
-
----
-
-## 📚 Detailed API Documentation
-
-For the complete V1 API reference used by this package, visit:
-
-[https://www.genderapi.io/api-documentation/v1](https://www.genderapi.io/api-documentation/v1)
-
-For a new integration, use the V2 documentation instead (different request and response format; this client is not a V2 client):
-
-[https://www.genderapi.io/api-documentation](https://www.genderapi.io/api-documentation)
-
----
-
-## ⚖️ License
-
-MIT License
+MIT

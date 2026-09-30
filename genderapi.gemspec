@@ -1,45 +1,31 @@
 # frozen_string_literal: true
 
+require_relative "lib/genderapi/version"
+
 Gem::Specification.new do |spec|
   spec.name          = "genderapi"
-  spec.version       = "1.0.5"
+  spec.version       = GenderAPI::VERSION
   spec.authors       = ["Onur Ozturk"]
   spec.email         = ["support@genderapi.io"]
 
-  spec.summary       = %q{Legacy V1 Ruby client for GenderAPI.io}
-  spec.description   = %q{
-    Legacy V1 Ruby client for GenderAPI.io.
-
-    This SDK allows determining gender from:
-    - personal names
-    - email addresses
-    - social media usernames
-
-    Supports:
-    - country filtering
-    - direct AI queries
-    - forced genderization for nicknames or unconventional strings
-
-    Built with HTTParty for easy HTTP handling.
-  }
-  spec.homepage      = "https://www.genderapi.io"
-  spec.metadata = {
-      "source_code_uri" => "https://github.com/GenderAPI/genderapi-ruby",
-      "changelog_uri"   => "https://github.com/GenderAPI/genderapi-ruby/blob/main/CHANGELOG.md",
-      "documentation_uri" => "https://www.genderapi.io/api-documentation/v1"
-    }
+  spec.summary       = "Official GenderAPI.io V2 client for Ruby"
+  spec.description   = "Official GenderAPI.io V2 client for Ruby. Infers gender from a name, email address " \
+                       "or username (single or batch), reads credit usage and validates phone number structure. " \
+                       "Results are inferences and can be unknown. Standard library only (net/http, json); " \
+                       "no automatic retries or redirects. Version 2 is a breaking change from the 1.x (V1) client."
+  spec.homepage      = "https://www.genderapi.io/api-documentation"
   spec.license       = "MIT"
+  spec.metadata = {
+    "homepage_uri" => "https://www.genderapi.io/api-documentation",
+    "source_code_uri" => "https://github.com/GenderAPI/genderapi-ruby",
+    "bug_tracker_uri" => "https://github.com/GenderAPI/genderapi-ruby/issues",
+    "changelog_uri" => "https://github.com/GenderAPI/genderapi-ruby/blob/main/CHANGELOG.md",
+    "documentation_uri" => "https://www.genderapi.io/docs/v2/responses"
+  }
 
-  # Gem dependencies
-  spec.required_ruby_version = ">= 2.6"
+  spec.required_ruby_version = ">= 3.0"
 
-  spec.add_dependency "httparty", "~> 0.18"
-  spec.add_dependency "json", "~> 2.0"
-
-  # Development dependencies
-  spec.add_development_dependency "rspec", "~> 3.0"
-
-  # Files to include in the gem
-  spec.files         = Dir["lib/**/*", "LICENSE", "README.md"]
+  # No runtime dependencies: net/http, json, openssl and uri ship with Ruby.
+  spec.files         = Dir["lib/**/*.rb"] + %w[LICENSE README.md CHANGELOG.md]
   spec.require_paths = ["lib"]
 end

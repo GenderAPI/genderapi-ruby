@@ -1,0 +1,37 @@
+name: Publish to RubyGems
+
+# Runs when a version tag such as v2.0.0 is pushed.
+# Requires the repository secret RUBYGEMS_API_KEY (RubyGems API key with the
+# "Push rubygem" scope for the genderapi gem).
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+      - name: Test
+        run: bundle exec rake test
+      - name: Check tag matches GenderAPI::VERSION
+        run: |
+          version="$(ruby -Ilib -e 'require "genderapi/version"; print GenderAPI::VERSION')"
+          if [ "${GITHUB_REF_NAME}" != "v${version}" ]; then
+            echo "Tag ${GITHUB_REF_NAME} does not match version ${version}" >&2
+            exit 1
+          fi
+      - name: Build gem
+        run: gem build genderapi.gemspec
+      - name: Push to RubyGems
+        env:
+          GEM_HOST_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
+        run: gem push "genderapi-${GITHUB_REF_NAME#v}.gem"
